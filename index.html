@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PICOS Scholar Search Assistant</title>
+    <meta name="description" content="AI-powered clinical research recommendations for neurological diseases using PICOS framework">
+    <meta name="keywords" content="PICOS, clinical research, neurological diseases, AI assistant">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+            height: 700px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .chat-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .restart-btn {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .restart-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-50%) scale(1.05);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            animation: fadeInUp 0.3s ease;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.assistant .message-avatar {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .message-content {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 18px;
+            max-width: 70%;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.assistant .message-content {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+        }
+
+        .loading-message .message-content {
+            padding: 20px;
+            text-align: center;
+        }
+
+        .typing-indicator {
+            display: inline-flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4facfe;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .chat-input {
+            flex: 1;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 15px 20px;
+            font-size: 16px;
+            resize: none;
+            min-height: 50px;
+            max-height: 120px;
+            outline: none;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+
+        .chat-input:focus {
+            border-color: #4facfe;
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 15px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            min-width: 80px;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .welcome-message {
+            text-align: center;
+            color: #6c757d;
+            padding: 40px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .welcome-message h2 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+
+        .welcome-message p {
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .example-queries {
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .example-queries h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #495057;
+        }
+
+        .example-query {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin: 5px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            border: 1px solid #e9ecef;
+        }
+
+        .example-query:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+
+        .recommendation-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        .recommendation-title {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .recommendation-summary {
+            color: #6c757d;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+
+        .recommendation-reason {
+            background: rgba(79, 172, 254, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #495057;
+        }
+
+        .error-message {
+            background: #ffe6e6;
+            border: 1px solid #ffcccc;
+            color: #cc0000;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+
+        @media (max-width: 768px) {
+            .chat-container {
+                height: 100vh;
+                border-radius: 0;
+                max-width: 100%;
+            }
+
+            .chat-header h1 {
+                font-size: 20px;
+            }
+
+            .restart-btn {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+
+            .message-content {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>🧠 PICOS Scholar Search Assistant</h1>
+            <p>AI-powered clinical research recommendations for neurological diseases</p>
+            <button class="restart-btn" onclick="restartChat()">🔄 Restart</button>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="welcome-message">
+                <h2>Welcome to PICOS Scholar Search!</h2>
+                <p>I'm your intelligent assistant for finding relevant clinical research in neurological diseases. I use the PICOS framework to understand your needs and provide personalized recommendations.</p>
+                <p><strong>PICOS Framework:</strong></p>
+                <p>• <strong>P</strong>opulation - Who is the study about?</p>
+                <p>• <strong>I</strong>ntervention - What treatment/intervention?</p>
+                <p>• <strong>C</strong>omparator - What is it compared to?</p>
+                <p>• <strong>O</strong>utcome - What outcomes are measured?</p>
+                <p>• <strong>S</strong>tudy Design - What type of study?</p>
+                
+                <div class="example-queries">
+                    <h3>Try these example queries:</h3>
+                    <div class="example-query" onclick="sendExampleQuery(this)">
+                        "I need randomized controlled trials about Alzheimer's disease in elderly patients using cognitive behavioral therapy compared to standard care for memory improvement."
+                    </div>
+                    <div class="example-query" onclick="sendExampleQuery(this)">
+                        "Find studies on Parkinson's disease patients receiving deep brain stimulation vs medication for motor symptom control."
+                    </div>
+                    <div class="example-query" onclick="sendExampleQuery(this)">
+                        "Research on epilepsy in adults using antiepileptic drugs compared to placebo for seizure control."
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input-container">
+            <div class="chat-input-wrapper">
+                <textarea 
+                    class="chat-input" 
+                    id="messageInput" 
+                    placeholder="Describe your research question using PICOS criteria..."
+                    rows="1"
+                    onkeypress="handleKeyPress(event)"
+                ></textarea>
+                <button class="send-btn" onclick="sendMessage()" id="sendBtn">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const WEBHOOK_URL = 'https://n8n-production-c996.up.railway.app/webhook/picos-chat';
+        let isLoading = false;
+
+        function restartChat() {
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.innerHTML = `
+                <div class="welcome-message">
+                    <h2>Welcome to PICOS Scholar Search!</h2>
+                    <p>I'm your intelligent assistant for finding relevant clinical research in neurological diseases. I use the PICOS framework to understand your needs and provide personalized recommendations.</p>
+                    <p><strong>PICOS Framework:</strong></p>
+                    <p>• <strong>P</strong>opulation - Who is the study about?</p>
+                    <p>• <strong>I</strong>ntervention - What treatment/intervention?</p>
+                    <p>• <strong>C</strong>omparator - What is it compared to?</p>
+                    <p>• <strong>O</strong>utcome - What outcomes are measured?</p>
+                    <p>• <strong>S</strong>tudy Design - What type of study?</p>
+                    
+                    <div class="example-queries">
+                        <h3>Try these example queries:</h3>
+                        <div class="example-query" onclick="sendExampleQuery(this)">
+                            "I need randomized controlled trials about Alzheimer's disease in elderly patients using cognitive behavioral therapy compared to standard care for memory improvement."
+                        </div>
+                        <div class="example-query" onclick="sendExampleQuery(this)">
+                            "Find studies on Parkinson's disease patients receiving deep brain stimulation vs medication for motor symptom control."
+                        </div>
+                        <div class="example-query" onclick="sendExampleQuery(this)">
+                            "Research on epilepsy in adults using antiepileptic drugs compared to placebo for seizure control."
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('messageInput').value = '';
+            document.getElementById('messageInput').focus();
+        }
+
+        function sendExampleQuery(element) {
+            const query = element.textContent.trim();
+            document.getElementById('messageInput').value = query;
+            sendMessage();
+        }
+
+        function addMessage(content, isUser = false, isLoading = false) {
+            const messagesContainer = document.getElementById('chatMessages');
+            
+            // Remove welcome message if it exists
+            const welcomeMessage = messagesContainer.querySelector('.welcome-message');
+            if (welcomeMessage) {
+                welcomeMessage.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'assistant'}${isLoading ? ' loading-message' : ''}`;
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = isUser ? '👤' : '🤖';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            
+            if (isLoading) {
+                contentDiv.innerHTML = `
+                    <div class="typing-indicator">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                    <span style="margin-left: 10px;">Analyzing your query and searching for relevant papers...</span>
+                `;
+            } else {
+                contentDiv.innerHTML = formatResponse(content);
+            }
+            
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(contentDiv);
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            return messageDiv;
+        }
+
+        function formatResponse(content) {
+            // Check if content looks like structured recommendations
+            if (content.includes('Title:') && content.includes('Summary:')) {
+                const sections = content.split('---').map(section => section.trim());
+                let formattedContent = '';
+                
+                sections.forEach(section => {
+                    if (section.includes('Title:')) {
+                        const titleMatch = section.match(/Title:\s*(.*?)(?:\n|$)/);
+                        const summaryMatch = section.match(/Summary:\s*(.*?)(?:\n\nReason|$)/s);
+                        const reasonMatch = section.match(/Reason for Recommendation:\s*(.*?)$/s);
+                        
+                        if (titleMatch) {
+                            formattedContent += `
+                                <div class="recommendation-card">
+                                    <div class="recommendation-title">${titleMatch[1]}</div>
+                                    ${summaryMatch ? `<div class="recommendation-summary">${summaryMatch[1].trim()}</div>` : ''}
+                                    ${reasonMatch ? `<div class="recommendation-reason"><strong>Why this paper:</strong> ${reasonMatch[1].trim()}</div>` : ''}
+                                </div>
+                            `;
+                        }
+                    } else if (section && !section.includes('Title:')) {
+                        formattedContent += `<p>${section}</p>`;
+                    }
+                });
+                
+                return formattedContent || content.replace(/\n/g, '<br>');
+            }
+            
+            return content.replace(/\n/g, '<br>');
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const message = input.value.trim();
+            
+            if (!message || isLoading) return;
+            
+            // Add user message
+            addMessage(message, true);
+            input.value = '';
+            
+            // Show loading
+            isLoading = true;
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Thinking...';
+            
+            const loadingMessage = addMessage('', false, true);
+            
+            try {
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const responseText = await response.text();
+                
+                // Remove loading message
+                loadingMessage.remove();
+                
+                // Add assistant response
+                addMessage(responseText);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                loadingMessage.remove();
+                
+                const errorMessage = `
+                    <div class="error-message">
+                        <strong>Connection Error</strong><br>
+                        Unable to connect to the PICOS search system. Please check your internet connection and try again.
+                        <br><br>
+                        <small>Technical details: ${error.message}</small>
+                    </div>
+                `;
+                addMessage(errorMessage, false);
+            }
+            
+            isLoading = false;
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Send';
+            input.focus();
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // Auto-resize textarea
+        document.getElementById('messageInput').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+
+        // Focus input on load
+        window.addEventListener('load', () => {
+            document.getElementById('messageInput').focus();
+        });
+    </script>
+</body>
+</html>
