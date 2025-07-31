@@ -1,0 +1,5 @@
+name              = "picos-chatbot"         # your Worker name
+compatibility_date = "2025-07-31"
+
+# Tell Wrangler to upload everything in repo root as static assets
+assets = { directory = "./" }
