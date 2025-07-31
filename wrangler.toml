@@ -1,8 +1,6 @@
 name              = "picos-chatbox"      # one line only
-main              = "worker.js"          # points at the new script
+
 compatibility_date = "2025-07-31"
 
 assets = { directory = "./" }
 
-[vars]
-VITE_API_BASE = "https://n8n-production-c996.up.railway.app/webhook/picos-chat"
