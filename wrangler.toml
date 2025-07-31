@@ -1,6 +1,4 @@
-name              = "picos-chatbox"      # one line only
-
+name              = "picos-chatbox"      # <- ASCII hyphen
 compatibility_date = "2025-07-31"
 
 assets = { directory = "./" }
-
